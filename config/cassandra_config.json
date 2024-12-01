@@ -1,0 +1,6 @@
+{
+    "username": "cassandra",
+    "password": "cassandra",
+    "contact_points": "cassandra",
+    "keyspace": "sentiment"
+  }

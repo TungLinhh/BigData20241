@@ -1,0 +1,36 @@
+import unittest
+from pyspark.sql import SparkSession
+import json
+import time
+
+class TestStreamProcessing(unittest.TestCase):
+    def setUp(self):
+        self.spark = SparkSession.builder \
+            .appName("TestStreamProcessing") \
+            .master("local[2]") \
+            .getOrCreate()
+
+    def test_windowing(self):
+        from src.stream_processing import windowed_df
+        # Simulate data for testing
+        data = [
+            ("123", "This is a good tweet", "2023-10-01 10:00:00", "positive"),
+            ("456", "This is a bad tweet", "2023-10-01 10:05:00", "negative"),
+            ("789", "Another good tweet", "2023-10-01 10:10:00", "positive")
+        ]
+        schema = ["id_str", "text", "created_at", "sentiment"]
+        df = self.spark.createDataFrame(data, schema)
+        df = df.withColumn("created_at", col("created_at").cast("timestamp"))
+
+        # Apply windowing
+        windowed_df = df.groupBy(window(col("created_at"), "10 minutes", "5 minutes"), col("sentiment")) \
+            .count() \
+            .withColumnRenamed("count", "tweet_count")
+
+        result = windowed_df.collect()
+        self.assertEqual(len(result), 2)
+        self.assertIn("positive", [row.sentiment for row in result])
+        self.assertIn("negative", [row.sentiment for row in result])
+
+if __name__ == '__main__':
+    unittest.main()
